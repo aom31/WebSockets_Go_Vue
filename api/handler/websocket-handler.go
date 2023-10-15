@@ -18,13 +18,14 @@ var (
 )
 
 func WsEndpoint(w http.ResponseWriter, r *http.Request) {
+
 	wsUpgrader.CheckOrigin = func(r *http.Request) bool {
-		//check the http.Request
-		// make sure it's ok to access
+		// check the http.Request
+		// make sure it's OK to access
 		return true
 	}
-
-	wsConn, err := wsUpgrader.Upgrade(w, r, nil)
+	var err error
+	wsConn, err = wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("could not upgrade: %s\n", err.Error())
 		return
@@ -32,15 +33,23 @@ func WsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	defer wsConn.Close()
 
-	//event loop
+	// event loop
 	for {
 		var msg models.MessageClient
 
-		if err := wsConn.ReadJSON(&msg); err != nil {
+		err := wsConn.ReadJSON(&msg)
+		if err != nil {
 			fmt.Printf("error reading JSON: %s\n", err.Error())
 			break
 		}
 
 		fmt.Printf("Message Received: %s\n", msg.Greeting)
+		SendMessage("Hello, client")
+	}
+}
+
+func SendMessage(msg string) {
+	if err := wsConn.WriteMessage(websocket.TextMessage, []byte(msg)); err != nil {
+		fmt.Printf("error sending message: %s\n", err.Error())
 	}
 }
